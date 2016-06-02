@@ -1,9 +1,9 @@
 package com.samplejoaTest.Fragments;
 
+import android.content.Context;
 import android.os.Bundle;
 import android.support.annotation.Nullable;
 import android.support.v4.app.Fragment;
-import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
@@ -19,12 +19,6 @@ import com.samplejoaTest.R;
 
 import java.util.List;
 
-import retrofit2.Call;
-import retrofit2.Callback;
-import retrofit2.Response;
-import retrofit2.Retrofit;
-import retrofit2.converter.gson.GsonConverterFactory;
-
 /**
  * Created by hoyoung on 2016-05-30.
  */
@@ -37,6 +31,22 @@ public class FragmentSale extends Fragment implements AdapterView.OnItemClickLis
     private String TAG = FragmentSale.class.getSimpleName();
     private SampleJoaAdapter mAdapter;
 
+    private String mName;
+
+    public String getName() {
+        return mName;
+    }
+
+    public void setName(String name) {
+        this.mName = name;
+    }
+
+    public interface OnFragmentSaleListner {
+        String getBannerUrl(String name);
+        void getModels(String name);
+    }
+
+    private OnFragmentSaleListner mListner;
 
     @Nullable
     @Override
@@ -45,12 +55,25 @@ public class FragmentSale extends Fragment implements AdapterView.OnItemClickLis
 
         mImageview = (ImageView) view.findViewById(R.id.image_view);
 
-
-        Glide.with(this)
-                .load("http://clubcoffee.cafe24.com/home/SampleJoa_Test/banner/sale.jpg")
-                .into(mImageview);
+        if (mListner != null) {
+            Glide.with(this)
+                    .load(mListner.getBannerUrl(getName()))
+                    .into(mImageview);
+        }
 
         return view;
+    }
+
+    @Override
+    public void onAttach(Context context) {
+        super.onAttach(context);
+        mListner = (OnFragmentSaleListner) context;
+    }
+
+    @Override
+    public void onDetach() {
+        super.onDetach();
+        mListner = null;
     }
 
     @Override
@@ -60,7 +83,11 @@ public class FragmentSale extends Fragment implements AdapterView.OnItemClickLis
         mSamplejoaAdapter = new SampleJoaAdapter();
         mGridView.setAdapter(mSamplejoaAdapter);
         mGridView.setOnItemClickListener(this);
-        select();
+//        select();
+
+        if (mListner != null) {
+            mListner.getModels(getName());
+        }
 
     }
 
@@ -71,29 +98,7 @@ public class FragmentSale extends Fragment implements AdapterView.OnItemClickLis
         mSamplejoaAdapter.notifyDataSetChanged();
     }
 
-    public void select() {
-        Retrofit retrofit = new Retrofit.Builder()
-                .baseUrl("http://clubcoffee.cafe24.com/home/SampleJoa_Test/")
-                .addConverterFactory(GsonConverterFactory.create())
-                .build();
-        mSampleJoaInterface = retrofit.create(SampleJoaInterface.class);
 
-        Call<List<SampleJoaModel>> call = mSampleJoaInterface.SelectServer();
-        call.enqueue(new Callback<List<SampleJoaModel>>() {
-            @Override
-            public void onResponse(Call<List<SampleJoaModel>> call, Response<List<SampleJoaModel>> response) {
-                if (response.body() != null) {
-                    ModelInit(response.body());
-                    Log.e(TAG, "onResponse: " + response.body());
-                }
-            }
-
-            @Override
-            public void onFailure(Call<List<SampleJoaModel>> call, Throwable t) {
-
-            }
-        });
-    }
     // 프래그먼트세일뷰 Activity 로 넘겨 준다~~~onItemClick
 
     @Override

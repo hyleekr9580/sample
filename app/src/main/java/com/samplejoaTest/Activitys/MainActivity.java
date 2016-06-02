@@ -13,22 +13,31 @@ import android.view.KeyEvent;
 import android.widget.Toast;
 
 import com.samplejoaTest.Fragments.FragmentSale;
-import com.samplejoaTest.Fragments.FragmentSample;
 import com.samplejoaTest.Interfaces.SampleJoaInterface;
+import com.samplejoaTest.Models.SampleJoaModel;
 import com.samplejoaTest.R;
 import com.samplejoaTest.event.Event;
 import com.samplejoaTest.event.EventData;
 import com.squareup.otto.Subscribe;
 
-import de.greenrobot.event.EventBus;
+import java.util.List;
 
-public class MainActivity extends AppCompatActivity implements TabLayout.OnTabSelectedListener {
+import de.greenrobot.event.EventBus;
+import retrofit2.Call;
+import retrofit2.Callback;
+import retrofit2.Response;
+import retrofit2.Retrofit;
+import retrofit2.converter.gson.GsonConverterFactory;
+
+public class MainActivity extends AppCompatActivity implements TabLayout.OnTabSelectedListener, FragmentSale.OnFragmentSaleListner {
 
     private String TAG = MainActivity.class.getSimpleName();
     private SampleJoaInterface mSampleJoaInterface;
     private TabLayout mTabLayout;
     private FragmentAdapter mFragmentAdapter;
     private ViewPager mViewPager;
+    private FragmentSale mFirstFragment;
+    private FragmentSale mSecondFragment;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -53,7 +62,11 @@ public class MainActivity extends AppCompatActivity implements TabLayout.OnTabSe
 
         EventBus.getDefault().register(this);
 
-
+        Retrofit retrofit = new Retrofit.Builder()
+                .baseUrl("http://clubcoffee.cafe24.com/home/SampleJoa_Test/")
+                .addConverterFactory(GsonConverterFactory.create())
+                .build();
+        mSampleJoaInterface = retrofit.create(SampleJoaInterface.class);
     }
 
 
@@ -68,7 +81,7 @@ public class MainActivity extends AppCompatActivity implements TabLayout.OnTabSe
 
         if (event instanceof EventData) {
             EventData eventData = (EventData) event;
-            Toast.makeText(MainActivity.this, ""+eventData.getName(), Toast.LENGTH_SHORT).show();
+            Toast.makeText(MainActivity.this, "" + eventData.getName(), Toast.LENGTH_SHORT).show();
         }
 
     }
@@ -90,6 +103,52 @@ public class MainActivity extends AppCompatActivity implements TabLayout.OnTabSe
 
     }
 
+    @Override
+    public String getBannerUrl(String name) {
+        switch (name) {
+            case "first":
+                return "http://clubcoffee.cafe24.com/home/SampleJoa_Test/banner/sale.jpg";
+            case "second":
+                return "http://clubcoffee.cafe24.com/home/SampleJoa_Test/banner/sample.jpg";
+        }
+        throw new IllegalArgumentException("모르는 name : " + name);
+    }
+
+    @Override
+    public void getModels(final String name) {
+        switch (name) {
+            case "first":
+                mSampleJoaInterface.SelectServer().enqueue(new Callback<List<SampleJoaModel>>() {
+                    @Override
+                    public void onResponse(Call<List<SampleJoaModel>> call, Response<List<SampleJoaModel>> response) {
+                        mFirstFragment.ModelInit(response.body());
+                    }
+
+                    @Override
+                    public void onFailure(Call<List<SampleJoaModel>> call, Throwable t) {
+
+                    }
+                });
+                break;
+            case "second":
+                mSampleJoaInterface.SelectServer().enqueue(new Callback<List<SampleJoaModel>>() {
+                    @Override
+                    public void onResponse(Call<List<SampleJoaModel>> call, Response<List<SampleJoaModel>> response) {
+                        mSecondFragment.ModelInit(response.body());
+                    }
+
+                    @Override
+                    public void onFailure(Call<List<SampleJoaModel>> call, Throwable t) {
+
+                    }
+                });
+                break;
+            default:
+                throw new IllegalArgumentException("모르는 name : " + name);
+        }
+
+
+    }
 
     private class FragmentAdapter extends FragmentPagerAdapter {
 
@@ -101,9 +160,14 @@ public class MainActivity extends AppCompatActivity implements TabLayout.OnTabSe
         public Fragment getItem(int position) {
             switch (position) {
                 case 0:
-                    return new FragmentSale();
+                    mFirstFragment = new FragmentSale();
+                    mFirstFragment.setName("first");
+                    return mFirstFragment;
                 case 1:
-                    return new FragmentSample();
+//                    return new FragmentSample();
+                    mSecondFragment = new FragmentSale();
+                    mSecondFragment.setName("second");
+                    return mSecondFragment;
                 default:
                     return new FragmentSale();
             }
@@ -114,6 +178,7 @@ public class MainActivity extends AppCompatActivity implements TabLayout.OnTabSe
             return 2;
         }
     }
+
     // 종료 알림참
     private void setOutAlertMsg() {
         AlertDialog.Builder builder = new AlertDialog.Builder(this);     // 여기서 this는 Activity의 this
@@ -146,8 +211,7 @@ public class MainActivity extends AppCompatActivity implements TabLayout.OnTabSe
         }
         return true;
     }
-
-
 }
+
 
 
